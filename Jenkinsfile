@@ -30,7 +30,7 @@ pipeline {
             }
         }
         stage('Health Check') {
-            setps {
+            steps {
                 withCredentials([string(credentialsId: KUBE_CREDENTIAL_ID, variable: 'KUBECONFIG_FILE')]) {
                     echo "Waiting for TigerGraph to be ready..."
                     sh "./kubectl --kubeconfig=${KUBECONFIG_FILE} wait --for=condition=Ready pod/tg-0 -n tigergraph --timeout=180s"
