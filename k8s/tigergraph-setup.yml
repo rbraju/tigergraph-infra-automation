@@ -19,7 +19,7 @@ metadata:
   namespace: tigergraph
 spec:
   serviceName: tg-svc
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: tigergraph
@@ -37,4 +37,11 @@ spec:
         env:
         - name: "SSH_PASSWORD"
           value: tigergraph
-
+  volumeClaimTemplates:
+  - metadata:
+      name: tigergraph-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi
