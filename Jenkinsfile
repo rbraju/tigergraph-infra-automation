@@ -44,7 +44,7 @@ pipeline {
                     echo "Setting up SSH access..."
                     sh '''
                     # Generate a new SSH key locally, in the jenkins workspace
-                    ssh-keygen -t rsa -b 4096 -f ./id_rsa -N "" -q <<< y
+                    echo "y" | ssh-keygen -t rsa -b 4096 -f ./id_rsa -N ""
 
                     PUBLIC_KEY=$(cat ./id_rsa.pub)
                     PRIVATE_KEY=$(cat ./id_rsa)
