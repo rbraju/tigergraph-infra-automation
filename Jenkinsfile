@@ -24,7 +24,7 @@ pipeline {
                     sh "./kubectl --kubeconfig=${KUBECONFIG_FILE} create namespace tigergraph --dry-run=client -o yaml | ./kubectl --kubeconfig=${KUBECONFIG_FILE} apply -f -"
 
                     // Apply the manifest
-                    sh "./kubectl --kubeconfig=${KUBECONFIG_FILE} apply -f k8s/tigergraph-setup.yaml"
+                    sh "./kubectl --kubeconfig=${KUBECONFIG_FILE} apply -f k8s/tigergraph-setup.yml"
             
                 }
             }
