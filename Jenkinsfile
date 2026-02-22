@@ -43,20 +43,28 @@ pipeline {
                 withCredentials([file(credentialsId: KUBE_CREDENTIAL_ID, variable: 'KUBECONFIG_FILE')]) {
                     echo "Setting up SSH access..."
                     sh '''
-                    # Get the public key from tg-0 pod
-                    PUB_KEY=\$(./kubectl --kubeconfig=\$KUBECONFIG_FILE exec tg-0 -n tigergraph -- cat /home/tigergraph/.ssh/id_rsa.pub)
+                    # Generate a new SSH key locally, in the jenkins workspace
+                    ssh-keygen -t rsa -b 4096 -f ./id_rsa -N "" -q <<< y
 
-                    # Append it to the authorized keys on tg-1 and tg-2
-                    DOMAIN="tg-svc.tigergraph.svc.cluster.local"
-                    for i in 1 2; do
-                        POD_NAME="tg-\${i}"
-                        POD_FQDN="\${POD_NAME}.\${DOMAIN}"
-                        echo "Setting up SSH trust for \${POD_NAME} (\${POD_FQDN})..."
-                        ./kubectl --kubeconfig=\$KUBECONFIG_FILE exec \${POD_NAME} -n tigergraph -- bash -c "echo '\$PUB_KEY' >> /home/tigergraph/.ssh/authorized_keys"
-                        ./kubectl --kubeconfig=\$KUBECONFIG_FILE exec \${POD_NAME} -n tigergraph -- bash -c "chmod 600 /home/tigergraph/.ssh/authorized_keys"
+                    PUBLIC_KEY=$(cat ./id_rsa.pub)
+                    PRIVATE_KEY=$(cat ./id_rsa)
 
-                        # Pre scan host keys to prevent "Host authenticity" prompts
-                        ./kubectl --kubeconfig=\$KUBECONFIG_FILE exec tg-0 -n tigergraph -- bash -c "ssh-keyscan \${POD_FQDN} >> /home/tigergraph/.ssh/known_hosts"
+                    for i in 0 1 2; do
+                        POD_NAME="tg-$i"
+                        echo "Injecting public key into $POD_NAME..."
+
+                        # Create .ssh folder
+                        ./kubectl --kubeconfig=$KUBECONFIG_FILE exec $POD_NAME -n tigergraph -- bash -c "mkdir -p ~/.ssh && chmod 700 ~/.ssh"
+                        ./kubectl --kubeconfig=$KUBECONFIG_FILE exec $POD_NAME -n tigergraph -- bash -c "echo '$PUBLIC_KEY' > ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+                        ./kubectl --kubeconfig=$KUBECONFIG_FILE exec $POD_NAME -n tigergraph -- bash -c "echo '$PRIVATE_KEY' > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa"
+
+                        # Fix Host Key Checking (The "StrictHostKeyChecking" fix)
+                        ./kubectl --kubeconfig=$KUBECONFIG_FILE exec $POD_NAME -n tigergraph -- bash -c "echo -e 'Host *\\\\n  StrictHostKeyChecking no\\\\n  UserKnownHostsFile /dev/null' > ~/.ssh/config && chmod 600 ~/.ssh/config"
+                        
+                        # Set ownership to tigergraph user just in case
+                        ./kubectl --kubeconfig=$KUBECONFIG_FILE exec $POD_NAME -n tigergraph -- bash -c "chown -R tigergraph:tigergraph ~/.ssh"
+
+                        echo "SSH access setup complete for $POD_NAME."
                     done
                     '''
                 }
