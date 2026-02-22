@@ -34,9 +34,11 @@ pipeline {
                 withCredentials([file(credentialsId: KUBE_CREDENTIAL_ID, variable: 'KUBECONFIG_FILE')]) {
                     // Wait until ALL pods with the label 'tigergraph' are ready.
                     echo "Waiting for every pod to be ready..."
+                    sh '''
                     for i in 0 1 2; do
                         ./kubectl --kubeconfig=${KUBECONFIG_FILE} wait --for=condition=Ready pod/tg-$i -n tigergraph --timeout=300s
                     done
+                    '''
                 }
             }
         }
