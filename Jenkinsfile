@@ -1,5 +1,5 @@
 pipeline {
-    agent any {
+    agent any
     environment {
         KUBE_CREDENTIAL_ID = 'tg-infra-kubeconfig'
     }
