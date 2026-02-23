@@ -12,6 +12,9 @@ pipeline {
                     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
                     chmod +x kubectl
                 fi
+
+                echo "Delete namespace if it exists..."
+                ./kubectl --kubeconfig=${KUBECONFIG_FILE} delete namespace tigergraph --grace-period=0 --force
                 '''
             }
         }
@@ -20,7 +23,7 @@ pipeline {
                 withCredentials([file(credentialsId: KUBE_CREDENTIAL_ID, variable: 'KUBECONFIG_FILE')]) {
                     echo "Deploying TigerGraph..."
 
-                    // Create namespace if it doesn't exist
+                    // Create namespace
                     sh './kubectl --kubeconfig=${KUBECONFIG_FILE} create namespace tigergraph --dry-run=client -o yaml | ./kubectl --kubeconfig=${KUBECONFIG_FILE} apply -f -'
 
                     // Apply the manifest
