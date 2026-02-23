@@ -82,7 +82,7 @@ pipeline {
                 withCredentials([file(credentialsId: KUBE_CREDENTIAL_ID, variable: 'KUBECONFIG_FILE')]) {
                     echo "Applying TigerGraph license and restarting all services..."
                     sh """
-                    ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n tigergraph -- bash <<'EOF'
+                    ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n tigergraph -- bash <<-EOF
                     source /home/tigergraph/.bashrc
                     echo "Running as user: \$(whoami)"
                     
