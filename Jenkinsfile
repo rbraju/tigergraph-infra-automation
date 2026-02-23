@@ -91,7 +91,7 @@ pipeline {
                     ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n ${TG_NAMESPACE} -- /home/tigergraph/tigergraph/app/cmd/gadmin license set $TG_LICENSE_KEY
 
                     # Replace loopback ip with actual hostname
-                    ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n tigergraph -- /home/tigergraph/tigergraph/app/cmd/gadmin config set System.HostList '[{"Hostname":"$(hostname -f)","ID":"m1","Region":""}]'
+                    ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n tigergraph -- /home/tigergraph/tigergraph/app/cmd/gadmin config set System.HostList "[{\"Hostname\":\"\$(hostname -f)",\"ID\":\"m1\",\"Region\":\"\"}]"
 
                     # Apply the configand restart all services
                     ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n tigergraph -- /home/tigergraph/tigergraph/app/cmd/gadmin config apply -y
@@ -102,12 +102,3 @@ pipeline {
         }
     }
 }
-
-/*
-                    # Replace loopback ip with actual hostname
-                    ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n tigergraph -- gadmin config set System.HostList '[{"Hostname":"$(hostname -f)","ID":"m1","Region":""}]'
-                    
-                    # Apply the configand restart all services
-                    ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n tigergraph -- gadmin config apply -y
-                    ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n tigergraph -- gadmin restart all -y
-*/
