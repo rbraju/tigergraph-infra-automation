@@ -81,17 +81,22 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: KUBE_CREDENTIAL_ID, variable: 'KUBECONFIG_FILE')]) {
                     echo "Applying TigerGraph license and restarting all services..."
-                    sh '''
-                    # Set the license
-                    ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n tigergraph -- gadmin license set $TG_LICENSE_KEY
-
-                    # Replace loopback ip with actual hostname
-                    ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n tigergraph -- gadmin config set System.HostList '[{"Hostname":"$(hostname -f)","ID":"m1","Region":""}]'
+                    sh """
+                    ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n tigergraph -- bash <<'EOF'
+                    source /home/tigergraph/.bashrc
+                    echo "Running as user: \$(whoami)"
                     
-                    # Apply the configand restart all services
-                    ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n tigergraph -- gadmin config apply -y
-                    ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n tigergraph -- gadmin restart all -y
-                    '''
+                    echo "Setting license..."
+                    gadmin license set $TG_LICENSE_KEY
+
+                    echo "Replacing loopback ip with actual hostname..."
+                    gadmin config set System.HostList '[{"Hostname":"$(hostname -f)","ID":"m1","Region":""}]'
+
+                    echo "Applying config and restarting all services..."
+                    gadmin config apply -y
+                    gadmin restart all -y
+                    EOF
+                    """
                 }
             }
         }
