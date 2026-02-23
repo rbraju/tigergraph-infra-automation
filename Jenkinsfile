@@ -88,7 +88,7 @@ pipeline {
                     sh """
                     # Set the license
                     echo "Running as user: \$(whoami)"
-                    ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n ${TG_NAMESPACE} -- home/tigergraph/tigergraph/app/cmd/gadmin license set $TG_LICENSE_KEY
+                    ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n ${TG_NAMESPACE} -- /home/tigergraph/tigergraph/app/cmd/gadmin license set $TG_LICENSE_KEY
                     """
                 }
             }
