@@ -20,11 +20,7 @@ pipeline {
                 withCredentials([file(credentialsId: KUBE_CREDENTIAL_ID, variable: 'KUBECONFIG_FILE')]) {
                     echo "Deploying TigerGraph..."
 
-
-                    echo "Delete namespace if it exists..."
-                    sh './kubectl --kubeconfig=${KUBECONFIG_FILE} delete namespace tigergraph --grace-period=0 --force'
-
-                    // Create namespace
+                    // Create namespace if it doesn't exist
                     sh './kubectl --kubeconfig=${KUBECONFIG_FILE} create namespace tigergraph --dry-run=client -o yaml | ./kubectl --kubeconfig=${KUBECONFIG_FILE} apply -f -'
 
                     // Apply the manifest
@@ -86,17 +82,20 @@ pipeline {
                 withCredentials([file(credentialsId: KUBE_CREDENTIAL_ID, variable: 'KUBECONFIG_FILE')]) {
                     echo "Applying TigerGraph license and restarting all services..."
                     sh """
-                    ./kubectl --kubeconfig=${KUBECONFIG_FILE} exec -i tg-0 -n tigergraph -- su - tigergraph -c bash <<-EOF
-                    source /home/tigergraph/.bashrc
-                    echo "Running as user: \$(whoami)"
-                    
-                    echo "Setting license..."
-                    gadmin license set ${TG_LICENSE_KEY}
-
-                    echo "Replacing loopback ip with actual hostname..."\\nEOF
+                    # Set the license
+                    ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n tigergraph -- gadmin license set $TG_LICENSE_KEY
                     """
                 }
             }
         }
     }
 }
+
+/*
+                    # Replace loopback ip with actual hostname
+                    ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n tigergraph -- gadmin config set System.HostList '[{"Hostname":"$(hostname -f)","ID":"m1","Region":""}]'
+                    
+                    # Apply the configand restart all services
+                    ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n tigergraph -- gadmin config apply -y
+                    ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n tigergraph -- gadmin restart all -y
+*/
