@@ -90,7 +90,7 @@ pipeline {
                     gadmin license set $TG_LICENSE_KEY
 
                     echo "Replacing loopback ip with actual hostname..."
-                    fqdn=$(hostname -f)
+                    fqdn=\$(hostname -f)
                     gadmin config set System.HostList '[{"Hostname":"\$fqdn","ID":"m1","Region":""}]'
 
                     echo "Applying config and restarting all services..."
