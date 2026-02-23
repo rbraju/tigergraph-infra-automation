@@ -19,7 +19,7 @@ metadata:
   namespace: tigergraph
 spec:
   serviceName: tg-svc
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: tigergraph
