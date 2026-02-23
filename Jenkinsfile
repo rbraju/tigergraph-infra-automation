@@ -1,6 +1,7 @@
 pipeline {
     agent any
     environment {
+        TG_NAMESPACE = 'tigergraph'
         KUBE_CREDENTIAL_ID = 'tg-infra-kubeconfig'
     }
     stages {
@@ -20,8 +21,11 @@ pipeline {
                 withCredentials([file(credentialsId: KUBE_CREDENTIAL_ID, variable: 'KUBECONFIG_FILE')]) {
                     echo "Deploying TigerGraph..."
 
+                    echo "Deleting namespace if it exists..."
+                    sh './kubectl --kubeconfig=${KUBECONFIG_FILE} delete namespace ${TG_NAMESPACE} --grace-period=0 --force'
+
                     // Create namespace if it doesn't exist
-                    sh './kubectl --kubeconfig=${KUBECONFIG_FILE} create namespace tigergraph --dry-run=client -o yaml | ./kubectl --kubeconfig=${KUBECONFIG_FILE} apply -f -'
+                    sh './kubectl --kubeconfig=${KUBECONFIG_FILE} create namespace ${TG_NAMESPACE} --dry-run=client -o yaml | ./kubectl --kubeconfig=${KUBECONFIG_FILE} apply -f -'
 
                     // Apply the manifest
                     sh './kubectl --kubeconfig=${KUBECONFIG_FILE} apply -f k8s/tigergraph-setup.yml'
@@ -36,7 +40,7 @@ pipeline {
                     echo "Waiting for every pod to be ready..."
                     sh '''
                     for i in 0 1 2; do
-                        ./kubectl --kubeconfig=${KUBECONFIG_FILE} wait --for=condition=Ready pod/tg-$i -n tigergraph --timeout=300s
+                        ./kubectl --kubeconfig=${KUBECONFIG_FILE} wait --for=condition=Ready pod/tg-$i -n ${TG_NAMESPACE} --timeout=300s
                     done
                     '''
                 }
@@ -58,15 +62,15 @@ pipeline {
                         echo "Injecting public key into $POD_NAME..."
 
                         # Create .ssh folder
-                        ./kubectl --kubeconfig=$KUBECONFIG_FILE exec $POD_NAME -n tigergraph -- bash -c "mkdir -p ~/.ssh && chmod 700 ~/.ssh"
-                        ./kubectl --kubeconfig=$KUBECONFIG_FILE exec $POD_NAME -n tigergraph -- bash -c "echo '$PUBLIC_KEY' > ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
-                        ./kubectl --kubeconfig=$KUBECONFIG_FILE exec $POD_NAME -n tigergraph -- bash -c "echo '$PRIVATE_KEY' > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa"
+                        ./kubectl --kubeconfig=$KUBECONFIG_FILE exec $POD_NAME -n ${TG_NAMESPACE} -- bash -c "mkdir -p ~/.ssh && chmod 700 ~/.ssh"
+                        ./kubectl --kubeconfig=$KUBECONFIG_FILE exec $POD_NAME -n ${TG_NAMESPACE} -- bash -c "echo '$PUBLIC_KEY' > ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+                        ./kubectl --kubeconfig=$KUBECONFIG_FILE exec $POD_NAME -n ${TG_NAMESPACE} -- bash -c "echo '$PRIVATE_KEY' > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa"
 
                         # Fix Host Key Checking (The "StrictHostKeyChecking" fix)
-                        ./kubectl --kubeconfig=$KUBECONFIG_FILE exec $POD_NAME -n tigergraph -- bash -c "echo -e 'Host *\\\\n  StrictHostKeyChecking no\\\\n  UserKnownHostsFile /dev/null' > ~/.ssh/config && chmod 600 ~/.ssh/config"
+                        ./kubectl --kubeconfig=$KUBECONFIG_FILE exec $POD_NAME -n ${TG_NAMESPACE} -- bash -c "echo -e 'Host *\\\\n  StrictHostKeyChecking no\\\\n  UserKnownHostsFile /dev/null' > ~/.ssh/config && chmod 600 ~/.ssh/config"
                         
                         # Set ownership to tigergraph user just in case
-                        ./kubectl --kubeconfig=$KUBECONFIG_FILE exec $POD_NAME -n tigergraph -- bash -c "chown -R tigergraph:tigergraph ~/.ssh"
+                        ./kubectl --kubeconfig=$KUBECONFIG_FILE exec $POD_NAME -n ${TG_NAMESPACE} -- bash -c "chown -R tigergraph:tigergraph ~/.ssh"
 
                         echo "SSH access setup complete for $POD_NAME."
                     done
@@ -83,7 +87,7 @@ pipeline {
                     echo "Applying TigerGraph license and restarting all services..."
                     sh """
                     # Set the license
-                    ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n tigergraph -- gadmin license set $TG_LICENSE_KEY
+                    ./kubectl --kubeconfig=$KUBECONFIG_FILE exec tg-0 -n ${TG_NAMESPACE} -- gadmin license set $TG_LICENSE_KEY
                     """
                 }
             }
